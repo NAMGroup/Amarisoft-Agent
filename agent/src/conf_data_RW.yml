@@ -1,0 +1,4 @@
+description: A file contianing info about the agent. This info might change during runtime
+configuration:
+    # server: http://host.docker.internal:18080
+    server: http://172.16.10.37:18080

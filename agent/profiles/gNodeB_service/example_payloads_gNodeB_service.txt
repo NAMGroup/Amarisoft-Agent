@@ -1,0 +1,211 @@
+docker-compose -f CPE_controller.docker-compose up
+
+TOUCH
+
+
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "touch"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+TOUCH WITH FILENAME
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "touch"
+          }
+        },
+        {
+          "name": "action_parameters",
+          "value": {
+            "value": {
+              "filename": "bla.bla"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+ECHO (default filename default message)
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "echo"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+ECHO (Custom filename default message)
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "echo"
+          }
+        },
+        {
+          "name": "action_parameters",
+          "value": {
+            "value": {
+              "filename": "bla.bla"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+
+
+ECHO (default  filename custom  message)
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "echo"
+          }
+        },
+        {
+          "name": "action_parameters",
+          "value": {
+            "value": {
+              "message": "bla.bla"
+            },
+                        "value": {
+              "filename": "bla.bla"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+ECHO (custom filename custom message)
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "echo"
+          }
+        },
+        {
+          "name": "action_parameters",
+          "value": {
+            "value": {
+              "message": "bla.bla_message", "filename": "bla.bla_papa"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+RESTART service
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "restart"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+RESTART service
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "restart"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+STOP service
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "stop"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+
+START service
+{
+  "activation_feature": [
+    {
+      "name": "gNodeB_service",
+      "feature_characteristic": [
+        {
+          "name": "action",
+          "value": {
+            "value": "start"
+          }
+        }
+      ]
+    }
+  ]
+}

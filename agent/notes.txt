@@ -1,0 +1,8 @@
+to run on cli 
+    uvicorn openapi_server.main:app --host 0.0.0.0 --port 28080 --reload
+to build docker 
+    docker-compose build 
+to build docker again from strat
+    docker-compose build --no-cache
+to run docker
+    docker-compose up

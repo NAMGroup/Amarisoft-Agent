@@ -1,0 +1,24 @@
+supported_profiles:
+    gNodeB_service: 
+        type: gNodeB_service
+        description: An agent that controls the lte service of an amarisfot callbox
+        execution_mode: Shell commands
+        required_steps: N/A
+        execution_path: N/A
+        available_commands:
+            touch:
+                description: Create a file (input filename or default value)
+                command: touch name
+            echo:
+                description: Echo a message to a file (input msg or default value and  filename or default value)
+                command: echo text >> file
+            stop:
+                description: Stop service
+                command: systemctl stop <service>
+            start:
+                description: Start service
+                command: systemctl start <service>
+            restart:
+                description: Restart service
+                command: systemctl restart <service>
+        # callback_file: The file which has the callback for this profile

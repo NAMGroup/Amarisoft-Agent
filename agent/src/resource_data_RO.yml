@@ -1,0 +1,10 @@
+description: A file contianing info about the device the agent is running on. This info should NOT change during runtime. Should propable set just once at first time
+resource_data:
+    category: gNB Controller
+    description: An agent that controls the lte service of an amarisfot callbox
+    name: NAME_PLACEHOLDER
+    ip: IP_PLACEHOLDER:PORT_PLACEHOLDER
+    location: [123,456]
+profile_type: gNodeB_service
+other_info:
+    add_fields: as required
