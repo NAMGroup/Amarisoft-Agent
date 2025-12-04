@@ -95,11 +95,10 @@ def write_conf_file(params):
     for param in params:
         if param in params:
             with open("./shared/myconf.cfg", mode="a") as conf:
-                if param in ["PRMT_AMF_ADDR","PRMT_GTP_ADDR" , "PRMT_PLMN" , "PRMT_MOD_UL" , "PRMT_MOD_DL"]:
+                if any(param.startswith(prefix) for prefix in ["PRMT_AMF_ADDR", "PRMT_GTP_ADDR", "PRMT_PLMN", "PRMT_MOD_UL", "PRMT_MOD_DL"]):
                     conf.write("#define  {} \"{}\"\n".format(param,params[param]))
                 else:
                     conf.write("#define  {} {}\n".format(param,params[param]))
-
         else:
             print("Yeah  this param is not available... ",param)
 

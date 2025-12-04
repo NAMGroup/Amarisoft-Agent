@@ -4,3 +4,4 @@ shared/default.echo
 *.pyc
 *.log
 .venv/
+.DS_Store
