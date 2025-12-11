@@ -65,7 +65,8 @@ async def create_physical_resource(
     response_model_by_alias=True,
 )
 async def delete_physical_resource(
-    id: str = Path(None, description="Identifier of the PhysicalResource"),
+    #id: str = Path(None, description="Identifier of the PhysicalResource"),
+    id: str = Path( description="Identifier of the PhysicalResource"),
 ) -> None:
     """This operation deletes a PhysicalResource entity."""
     ...
@@ -113,7 +114,8 @@ async def list_physical_resource(
     response_model_by_alias=True,
 )
 async def patch_physical_resource(
-    id: str = Path(None, description="Identifier of the PhysicalResource"),
+    #id: str = Path(None, description="Identifier of the PhysicalResource"),
+    id: str = Path(description="Identifier of the PhysicalResource"),
     physical_resource: PhysicalResourceUpdate = Body(None, description="The PhysicalResource to be updated"),
 ) -> PhysicalResource:
     """This operation updates partially a PhysicalResource entity."""
@@ -137,7 +139,8 @@ async def patch_physical_resource(
     response_model_by_alias=True,
 )
 async def retrieve_physical_resource(
-    id: str = Path(None, description="Identifier of the PhysicalResource"),
+    #id: str = Path(None, description="Identifier of the PhysicalResource"),
+    id: str = Path( description="Identifier of the PhysicalResource"),
     fields: str = Query(None, description="Comma-separated properties to provide in response"),
 ) -> PhysicalResource:
     """This operation retrieves a PhysicalResource entity. Attribute selection is enabled for all first level attributes."""

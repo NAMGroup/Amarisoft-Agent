@@ -64,7 +64,8 @@ async def register_listener(
     response_model_by_alias=True,
 )
 async def unregister_listener(
-    id: str = Path(None, description="The id of the registered listener"),
+    #id: str = Path(None, description="The id of the registered listener"),
+    id: str = Path( description="The id of the registered listener"),
 ) -> None:
     """Resets the communication endpoint address the service instance must use to deliver information about its health state, execution state, failures and metrics."""
     ...

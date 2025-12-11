@@ -28,11 +28,11 @@ app = FastAPI(
     version="4.0.0",
 )
 
-app.include_router(EventsSubscriptionApiRouter)
-app.include_router(LogicalResourceApiRouter)
-app.include_router(NotificationListenersClientSideApiRouter)
+#app.include_router(EventsSubscriptionApiRouter)
+#app.include_router(LogicalResourceApiRouter)
+#app.include_router(NotificationListenersClientSideApiRouter)
 app.include_router(PhysicalResourceApiRouter)
-app.include_router(ResourceApiRouter)
+#app.include_router(ResourceApiRouter)
 
 
 myAgent=agent.MyAgent()

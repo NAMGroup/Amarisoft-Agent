@@ -67,7 +67,8 @@ async def create_resource(
     response_model_by_alias=True,
 )
 async def delete_resource(
-    id: str = Path(None, description="Identifier of the Resource"),
+    #id: str = Path(None, description="Identifier of the Resource"),
+    id: str = Path( description="Identifier of the Resource"),
 ) -> None:
     """This operation deletes a Resource entity."""
     ...
@@ -115,7 +116,8 @@ async def list_resource(
     response_model_by_alias=True,
 )
 async def patch_resource(
-    id: str = Path(None, description="Identifier of the Resource"),
+    #id: str = Path(None, description="Identifier of the Resource"),
+    id: str = Path( description="Identifier of the Resource"),
     resource: ResourceUpdate = Body(None, description="The Resource to be updated"),
 ) -> Resource:
     """This operation updates partially a Resource entity."""
@@ -184,7 +186,8 @@ async def patch_resource(
     response_model_by_alias=True,
 )
 async def retrieve_resource(
-    id: str = Path(None, description="Identifier of the Resource"),
+    #id: str = Path(None, description="Identifier of the Resource"),
+    id: str = Path( description="Identifier of the Resource"),
     fields: str = Query(None, description="Comma-separated properties to provide in response"),
 ) -> Resource:
     """This operation retrieves a Resource entity. Attribute selection is enabled for all first level attributes."""
