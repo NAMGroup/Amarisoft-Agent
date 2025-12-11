@@ -1,3 +1,5 @@
+# For older fedora base distros
+# FROM python:3.11-slim-bullseye 
 FROM python:3.11-slim
 WORKDIR /agent
 
