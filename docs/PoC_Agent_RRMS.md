@@ -84,7 +84,9 @@ Install RRMS server by following the instrcutions
 
 ### Deploy
 
-docker run -d --name gnb_agent -p 42000:8080                 --privileged             -v ./src/shared/:/agent/shared                      -v /run/systemd/system:/run/systemd/system -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket  -e SERVER_IP=http://172.16.100.207:18080 -e AGENT_NAME="MY_POC_AGENT"          -e AGENT_IP="172.16.100.207:42000"        --restart unless-stopped                  gnb_agent      uvicorn openapi_server.main:app --host 0.0.0.0 --port 8080 --reload
+```bash
+docker run -d --name gnb_agent -p 42000:8080 -v "$(pwd)/src/shared/:/agent/shared" -e SERVER_IP=http://10.10.10.58:18080 -e AGENT_NAME="AMARISOFT_AGENT" -e AGENT_IP="172.16.100.128:42000" --restart unless-stopped gnb_agent uvicorn openapi_server.main:app --host 0.0.0.0 --port 8080 
+```
 
 ## Verify 
 - curl -X 'GET' \
