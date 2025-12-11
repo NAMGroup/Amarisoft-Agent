@@ -16,14 +16,12 @@ import importlib
 import requests
 import time
 
-from os import error, getenv
-
 
 class MyAgent:
     def __init__(self):
         self.logger= agent_logging.logger
-        #self.agent_resource_file="resource_data_RO.yml"
-        # self.agent_conf_file="conf_data_RW.yml"
+        self.agent_resource_file="resource_data_RO.yml"
+        self.agent_conf_file="conf_data_RW.yml"
         self.profiles="profiles.yml"
         self.profile_location="./profiles" #folder name. Need to read conf name
         self.profile_location_name="profiles" #"package name". Need to import as package
@@ -124,75 +122,35 @@ class MyAgent:
                     self.profile_actions.append(commands_key)
         return True
 
-    def get_server_ip(self, ):
-        server_ip_address = getenv("SERVER_IP")
-        if server_ip_address is None:
-            print("SERVER_IP environment variable is not set")
-            return None
-
-        print("SERVER_IP address:", server_ip_address)
-        return server_ip_address
-    
-    def get_agent_name(self, ):
-        agent_name = getenv("AGENT_NAME")
-        if agent_name is None:
-            print("AGENT_NAME environment variable is not set")
-            return None
-
-        print("AGENT_NAME :", agent_name)
-        return agent_name
-
-    def get_agent_ip(self, ):
-        agent_ip = getenv("AGENT_IP")
-        if agent_ip is None:
-            print("AGENT_IP environment variable is not set")
-            return None
-
-        print("AGENT_IP :", agent_ip)
-        return agent_ip
-
     def read_conf(self):
         #Read basic device info.This is specific for this device type and should never
-        # with open(self.agent_resource_file, "r") as ymlfile:
-        #     data = yaml.safe_load(ymlfile)
-        #     if "resource_data" not in data:
-        #         self.logger.error("NO resource data found")
-        #         return False
-        #     self.resource_data=data["resource_data"]
-        #     #Also set profile as well
-        #     if "profile_type" not in data:
-        #         self.logger.error("NO profile found")
-        #         return False
-        #     self.profile=data["profile_type"]
-        #     #since there is a profile lets get the default actions for this profile
-        #     status=self.read_profile()
-        #     if status is False:
-        #         self.logger.error("Profile Reading failed")
-        #         return False
+        with open(self.agent_resource_file, "r") as ymlfile:
+            data = yaml.safe_load(ymlfile)
+            if "resource_data" not in data:
+                self.logger.error("NO resource data found")
+                return False
+            self.resource_data=data["resource_data"]
+            #Also set profile as well
+            if "profile_type" not in data:
+                self.logger.error("NO profile found")
+                return False
+            self.profile=data["profile_type"]
+            #since there is a profile lets get the default actions for this profile
+            status=self.read_profile()
+            if status is False:
+                self.logger.error("Profile Reading failed")
+                return False
         #Read basic configuration info. This might change during runtime
-        # with open(self.agent_conf_file, "r") as ymlfile:
-        #     conf_data_yaml = yaml.safe_load(ymlfile)
-        #     if "configuration" not in conf_data_yaml:
-        #         self.logger.error("NO configuration data found")
-        #         return False
-        #     data=conf_data_yaml["configuration"]
-        #     # print(conf_data_yaml)
-        #     self.server=data["server"]
-        #read server from env variable
-        self.server=self.get_server_ip()
-        #read name from env variable
-        self.server=self.get_server_ip()
-        self.profile="gNodeB_service"
-        self.resource_data=dict()
-        self.resource_data["category"]="gNB Controller"
-        self.resource_data["description"]="An agent that controls the lte service of an amarisfot callbox"
-        self.resource_data["name"]=self.get_agent_name()
-        self.resource_data["ip"]=self.get_agent_ip()
+        with open(self.agent_conf_file, "r") as ymlfile:
+            conf_data_yaml = yaml.safe_load(ymlfile)
+            if "configuration" not in conf_data_yaml:
+                self.logger.error("NO configuration data found")
+                return False
+            data=conf_data_yaml["configuration"]
+            # print(conf_data_yaml)
+            self.server=data["server"]
 
-        status=self.read_profile()
-        if status is False:
-            self.logger.error("Profile Reading failed")
-            return False
+
         return True
 
  #create a resource in order to register

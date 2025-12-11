@@ -65,8 +65,7 @@ async def create_logical_resource(
     response_model_by_alias=True,
 )
 async def delete_logical_resource(
-    #id: str = Path(None, description="Identifier of the LogicalResource"),
-    id: str = Path( description="Identifier of the LogicalResource"),
+    id: str = Path(None, description="Identifier of the LogicalResource"),
 ) -> None:
     """This operation deletes a LogicalResource entity."""
     ...
@@ -114,8 +113,7 @@ async def list_logical_resource(
     response_model_by_alias=True,
 )
 async def patch_logical_resource(
-    #id: str = Path(None, description="Identifier of the LogicalResource"),
-    id: str = Path( description="Identifier of the LogicalResource"),
+    id: str = Path(None, description="Identifier of the LogicalResource"),
     logical_resource: LogicalResourceUpdate = Body(None, description="The LogicalResource to be updated"),
 ) -> LogicalResource:
     """This operation updates partially a LogicalResource entity."""
@@ -139,8 +137,7 @@ async def patch_logical_resource(
     response_model_by_alias=True,
 )
 async def retrieve_logical_resource(
-    #id: str = Path(None, description="Identifier of the LogicalResource"),
-    id: str = Path( description="Identifier of the LogicalResource"),
+    id: str = Path(None, description="Identifier of the LogicalResource"),
     fields: str = Query(None, description="Comma-separated properties to provide in response"),
 ) -> LogicalResource:
     """This operation retrieves a LogicalResource entity. Attribute selection is enabled for all first level attributes."""
@@ -164,8 +161,7 @@ async def retrieve_logical_resource(
     response_model_by_alias=True,
 )
 async def update_logical_resource(
-    #id: str = Path(None, description="Identifier of the LogicalResource"),
-    id: str = Path(description="Identifier of the LogicalResource"),
+    id: str = Path(None, description="Identifier of the LogicalResource"),
     logical_resource: LogicalResourceUpdate = Body(None, description="The LogicalResource to be updated"),
 ) -> LogicalResource:
     """This operation updates a LogicalResource entity."""

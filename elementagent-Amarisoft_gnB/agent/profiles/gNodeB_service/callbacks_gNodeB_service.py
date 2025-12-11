@@ -61,7 +61,7 @@ def _execCMD(action_command,debug_mode=False):
 
 def touch(debug_mode,params):
     time_now = time.strftime("%Y%m%d-%H%M%S")
-    fileName="./shared/"+'_'.join(["test",time_now]);
+    fileName='_'.join(["test",time_now]);
     if params is not None:
         if "filename" in params:
             fileName=params["filename"]
@@ -99,6 +99,7 @@ def write_conf_file(params):
                     conf.write("#define  {} \"{}\"\n".format(param,params[param]))
                 else:
                     conf.write("#define  {} {}\n".format(param,params[param]))
+
         else:
             print("Yeah  this param is not available... ",param)
 

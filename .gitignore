@@ -5,3 +5,13 @@ shared/default.echo
 *.log
 .venv/
 .DS_Store
+agent/src/shared/default.echo
+agent/error.log
+agent/agent.log
+agent/agent.log
+agent/error.log
+DO_NOT_COMMIT/
+src/default.echo
+shared/default.echo
+*.pyc
+*.log
