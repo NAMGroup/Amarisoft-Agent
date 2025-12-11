@@ -1,5 +1,8 @@
 import json
 import subprocess
+import re
+import asyncio
+import websockets
 # from common import agent_logging
 import time
 # global variable containing callbacks
@@ -102,6 +105,139 @@ def write_conf_file(params):
 
         else:
             print("Yeah  this param is not available... ",param)
+
+async def send_ws_message(message):
+    uri = "ws://localhost:9000"
+    try:
+        async with websockets.connect(uri) as websocket:
+            await websocket.send(json.dumps(message))
+            response = await websocket.recv()
+            print(f"Websocket response: {response}")
+    except Exception as e:
+        print(f"Websocket error: {e}")
+
+def websocket_update_ue(action, ue_entry):
+    """
+    Websocket call to add or remove UE.
+    action: 'add' or 'remove'
+    ue_entry: dict containing UE details
+    """
+    message = {}
+    if action == 'add':
+        message = {
+            "message": "ue_add",
+            "ue_db": [ue_entry]
+        }
+    elif action == 'remove':
+        message = {
+            "message": "ue_remove",
+            "imsi": ue_entry.get('imsi')
+        }
+    
+    if message:
+        print(f"Sending websocket message: {message}")
+        coro = send_ws_message(message)
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_running():
+                loop.create_task(coro)
+            else:
+                asyncio.run(coro)
+        except RuntimeError:
+            asyncio.run(coro)
+
+def read_users_db_file():
+    try:
+        with open("./shared/users.db.cfg", 'r') as f:
+            content = f.read()
+            
+        # Remove comments
+        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        content = re.sub(r'//.*', '', content)
+        
+        # Remove prefix
+        content = content.replace('ue_db:', '').strip()
+        
+        # Quote keys (simple heuristic: word characters followed by colon)
+        content = re.sub(r'(\w+)\s*:', r'"\1":', content)
+        
+        # Handle hex values
+        content = re.sub(r'0x([0-9a-fA-F]+)', lambda m: str(int(m.group(1), 16)), content)
+        
+        # Handle trailing commas
+        content = re.sub(r',(\s*[}\]])', r'\1', content)
+
+        return json.loads(content)
+    except Exception as e:
+        print(f"Error reading users.db.cfg: {e}")
+        return []
+
+def write_users_db_file(params):
+    # Read current state
+    current_ues = read_users_db_file()
+    
+    # Normalize params to list of dicts
+    new_ues = []
+    for entry in params:
+        if hasattr(entry, 'dict'):
+            new_ues.append(entry.dict(by_alias=True, exclude_none=True))
+        elif hasattr(entry, 'model_dump'):
+            new_ues.append(entry.model_dump(by_alias=True, exclude_none=True))
+        else:
+            new_ues.append(entry)
+
+    # Create dictionaries keyed by IMSI for easy comparison
+    current_map = {ue.get('imsi'): ue for ue in current_ues if ue.get('imsi')}
+    new_map = {ue.get('imsi'): ue for ue in new_ues if ue.get('imsi')}
+    
+    to_remove = []
+    to_add = []
+    
+    # Check for removals and updates
+    for imsi, ue in current_map.items():
+        if imsi not in new_map:
+            # If missing, we keep
+            pass
+        elif new_map[imsi] != ue:
+            # Patch logic: update current ue with new fields
+            merged_ue = ue.copy()
+            merged_ue.update(new_map[imsi])
+            
+            if merged_ue != ue:
+                # If changed, we remove and re-add
+                to_remove.append(ue)
+                to_add.append(merged_ue)
+            
+            # Update new_map with the merged version so it gets written to file
+            new_map[imsi] = merged_ue
+            
+    # Check for additions
+    for imsi, ue in new_map.items():
+        if imsi not in current_map:
+            to_add.append(ue)
+            
+    # Execute websocket calls
+    for ue in to_remove:
+        websocket_update_ue('remove', ue)
+        
+    for ue in to_add:
+        websocket_update_ue('add', ue)
+
+    # Reconstruct the full list for writing to file
+    # We start with UEs that were kept (not in new_map)
+    final_ues_list = [ue for imsi, ue in current_map.items() if imsi not in new_map]
+    # Add the new/updated UEs from the input params
+    for ue in new_ues:
+         imsi = ue.get('imsi')
+         if imsi and imsi in new_map:
+             final_ues_list.append(new_map[imsi])
+         else:
+             final_ues_list.append(ue)
+
+    # Update the file
+    with open("./shared/users.db.cfg", 'w') as conf:
+        conf.write("ue_db: ")
+        json.dump(final_ues_list, conf, indent=4)
 
 def stop(debug_mode,params):
     if params is not None:
