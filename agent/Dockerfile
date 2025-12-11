@@ -1,5 +1,4 @@
-FROM python:3.10-slim
-
+FROM python:3.11-slim-bullseye
 WORKDIR /agent
 
 COPY ./requirements.txt /radio_mgmt_agent/requirements.txt
