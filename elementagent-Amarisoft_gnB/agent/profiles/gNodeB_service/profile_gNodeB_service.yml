@@ -20,5 +20,8 @@ supported_profiles:
                 command: systemctl start <service>
             restart:
                 description: Restart service
-                command: systemctl restart <service>
+                command: systemctl restart <service>   
+            get_ue_slices:
+                description: Get the slice(s) associated with a UE
+
         # callback_file: The file which has the callback for this profile

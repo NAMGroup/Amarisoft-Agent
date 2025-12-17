@@ -3,8 +3,16 @@ import subprocess
 import re
 import asyncio
 import websockets
-# from common import agent_logging
+import logging
 import time
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+agent_logging = logging.getLogger(__name__)
+
 # global variable containing callbacks
 callbacks = {}
 
@@ -12,29 +20,31 @@ callbacks = {}
 def register_callback(event, callback):
     if event not in callbacks:
         callbacks[event] = callback
-        print("in here")
+        agent_logging.info("in here")
     else:
-        print("Already reguistered")
+        agent_logging.info("Already reguistered")
 
 # a function that is called when some event is triggered on an object
 def process_event(event,debug_mode,params):
     if  event in callbacks:
         # this object/event pair has a callback, call it
         callback = callbacks[event]
-        print("Callback registered-->", callback)
-        print(debug_mode)
+        agent_logging.info(f"Callback registered--> {callback}")
+        agent_logging.info(debug_mode)
         callback(debug_mode,params)
     else:
-        print("No callback registered")
+        agent_logging.info("No callback registered")
         return False
 
 
 def _execCMD(action_command,debug_mode=False):
-    process=None
     #process = subprocess.Popen(['echo', self.action_command], 
 #    process = subprocess.Popen(["echo \"", action_command,"\" >>./test.txt"],
-    print(type(action_command))
-    print(action_command)
+    agent_logging.info(type(action_command))
+    agent_logging.info(action_command)
+    
+    process: subprocess.Popen[str]
+    
     if debug_mode:
         process = subprocess.Popen(["echo \""+ str(action_command)+"\" >>../test.txt"],
         # process = subprocess.Popen([action_command],
@@ -49,17 +59,17 @@ def _execCMD(action_command,debug_mode=False):
                     shell=True, 
                     stdout=subprocess.PIPE,
                     universal_newlines=True)
-
+    
     while True:
-        output = process.stdout.readline()
-        print(output.strip())
+        output = process.stdout.readline()  # type: ignore
+        agent_logging.info(output.strip())
         # Do something else
         return_code = process.poll()
         if return_code is not None:
-            print('RETURN CODE', return_code)
+            agent_logging.info(f'RETURN CODE {return_code}')
             # Process has finished, read rest of the output 
-            for output in process.stdout.readlines():
-                print(output.strip())
+            for output in process.stdout.readlines(): # type: ignore
+                agent_logging.info(output.strip())
             break
 
 def touch(debug_mode,params):
@@ -82,10 +92,10 @@ def echo(debug_mode,params):
         if "filename" in params:
             fileName=params["filename"]
         if "message" in params:
-            print("here")
+            agent_logging.info("here")
             msg=msg +":"+params["message"]
     cmd2send="echo TEST:11111"+msg + " >> ./" + fileName
-    print(msg)
+    agent_logging.info(msg)
     _execCMD(cmd2send)    
     # _execCMD("echo 'papajohn' >>./test.txt ; echo $(date -u) >>./test.txt ")    
 
@@ -104,7 +114,7 @@ def write_conf_file(params):
                     conf.write("#define  {} {}\n".format(param,params[param]))
 
         else:
-            print("Yeah  this param is not available... ",param)
+            agent_logging.info(f"Yeah  this param is not available... {param}")
 
 async def send_ws_message(message):
     uri = "ws://localhost:9000"
@@ -112,9 +122,9 @@ async def send_ws_message(message):
         async with websockets.connect(uri) as websocket:
             await websocket.send(json.dumps(message))
             response = await websocket.recv()
-            print(f"Websocket response: {response}")
+            agent_logging.info(f"Websocket response: {response}")
     except Exception as e:
-        print(f"Websocket error: {e}")
+        agent_logging.error(f"Websocket error: {e}")
 
 def websocket_update_ue(action, ue_entry):
     """
@@ -135,7 +145,7 @@ def websocket_update_ue(action, ue_entry):
         }
     
     if message:
-        print(f"Sending websocket message: {message}")
+        agent_logging.info(f"Sending websocket message: {message}")
         coro = send_ws_message(message)
         try:
             loop = asyncio.get_running_loop()
@@ -169,22 +179,16 @@ def read_users_db_file():
 
         return json.loads(content)
     except Exception as e:
-        print(f"Error reading users.db.cfg: {e}")
+        agent_logging.error(f"Error reading users.db.cfg: {e}")
         return []
+
 
 def write_users_db_file(params):
     # Read current state
     current_ues = read_users_db_file()
     
-    # Normalize params to list of dicts
-    new_ues = []
-    for entry in params:
-        if hasattr(entry, 'dict'):
-            new_ues.append(entry.dict(by_alias=True, exclude_none=True))
-        elif hasattr(entry, 'model_dump'):
-            new_ues.append(entry.model_dump(by_alias=True, exclude_none=True))
-        else:
-            new_ues.append(entry)
+    # params is expected to be a list of dicts from JSON
+    new_ues = params
 
     # Create dictionaries keyed by IMSI for easy comparison
     current_map = {ue.get('imsi'): ue for ue in current_ues if ue.get('imsi')}
@@ -265,7 +269,24 @@ def restart(debug_mode,params):
     cmd2send="systemctl restart lte"
     if params is not None:
        write_conf_file(params)
-    _execCMD(cmd2send)    
-
-
+    _execCMD(cmd2send)   
     
+def get_ue_slices(debug_mode,params):
+    target_imsi = None
+    # params is expected to be a list of dicts from JSON
+    for data in params:
+        if isinstance(data, dict) and data.get('imsi'):
+            target_imsi = data.get('imsi')
+            break
+    
+    if not target_imsi:
+        return None
+
+    ues = read_users_db_file()
+    for ue in ues:
+        if ue.get('imsi') == target_imsi:
+            return {
+                "imsi": ue.get("imsi"),
+                "pdn_list": ue.get("pdn_list")
+            }
+    return None
