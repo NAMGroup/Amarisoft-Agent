@@ -17,19 +17,19 @@ services:
     command: bash -c "apt-get update && apt-get -y install systemd && pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt && uvicorn openapi_server.main:app --host 0.0.0.0 --port 80 --reload"
     # command: bash -c "pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt && tail -f /dev/null"
   
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "28081:9100"
+  # node-exporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: node-exporter
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - '--path.procfs=/host/proc'
+  #     - '--path.rootfs=/rootfs'
+  #     - '--path.sysfs=/host/sys'
+  #     - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+  #   ports:
+  #     - "28081:9100"
 
