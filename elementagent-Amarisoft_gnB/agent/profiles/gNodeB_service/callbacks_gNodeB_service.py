@@ -104,6 +104,6 @@ def get_ue_slices(params):
             }
     return None
 
-def update_ues(params):
+def update_ues(debug_mode, params):
     """Update UEs in users database file with UE updates via websocket."""
     update_ues_websocket_db(params)
