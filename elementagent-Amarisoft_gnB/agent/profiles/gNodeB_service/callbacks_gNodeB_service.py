@@ -63,7 +63,11 @@ def stop(debug_mode,params):
 
     cmd2send="systemctl stop lte"
     
-    exec_command(cmd2send)    
+    return_code = exec_command(cmd2send)
+    if return_code == 0:
+        return "Stop Successful"
+    else:
+        return "Stop Failed"
  
 
 def start(debug_mode,params):
@@ -73,7 +77,11 @@ def start(debug_mode,params):
     cmd2send="systemctl start lte"
     if params is not None:
         write_conf_file(params)
-    exec_command(cmd2send)    
+    return_code = exec_command(cmd2send) 
+    if return_code == 0:
+        return "Start Successful"
+    else:
+        return "Start Failed"
 
 
 def restart(debug_mode,params):
@@ -83,7 +91,11 @@ def restart(debug_mode,params):
     cmd2send="systemctl restart lte"
     if params is not None:
        write_conf_file(params)
-    exec_command(cmd2send)   
+    return_code = exec_command(cmd2send)   
+    if return_code == 0:
+        return "Restart Successful"
+    else:
+        return "Restart Failed"
     
 def get_ue_slices(debug_mode, params):
     target_imsi = None

@@ -42,7 +42,7 @@ def exec_command(action_command, debug_mode=False):
             agent_logging.info(f'RETURN CODE {return_code}')
             for output in process.stdout.readlines():  # type: ignore
                 agent_logging.info(output.strip())
-            break
+            return return_code
 
 
 def write_conf_file(params):
