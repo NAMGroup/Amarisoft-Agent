@@ -3,6 +3,7 @@ import subprocess
 import re
 import asyncio
 import websockets
+from websocket import create_connection, WebSocket
 import logging
 
 logging.basicConfig(
@@ -63,54 +64,47 @@ def write_conf_file(params):
             agent_logging.info(f"Yeah  this param is not available... {param}")
 
 
-async def send_ws_message(message, timeout=5, max_retries=3):
+async def send_ws_message(message, max_retries=3):
     """Send a message via WebSocket with retry logic."""
     uri = "ws://172.16.10.207:9000"
-    agent_logging.info(f"[WS] Connecting to {uri}")
-    agent_logging.info(f"[WS] Message to send: {json.dumps(message, indent=2)}")
+    ws: WebSocket
     
-    for attempt in range(max_retries):
-        try:
-            agent_logging.info(f"[WS] Attempt {attempt + 1}/{max_retries}")
-            async with websockets.connect(uri, timeout=timeout) as websocket:
-                agent_logging.info(f"[WS] Connected successfully")
-                message_str = json.dumps(message)
-                agent_logging.info(f"[WS] Sending {len(message_str)} bytes")
-                await websocket.send(message_str)
-                agent_logging.info(f"[WS] Message sent, waiting for response...")
-                response = await asyncio.wait_for(websocket.recv(), timeout=timeout)
-                agent_logging.info(f"[WS] Response received: {response}")
-                return {"success": True, "response": response}
-        except asyncio.TimeoutError:
-            agent_logging.error(f"[WS] Timeout on attempt {attempt + 1}")
-            if attempt == max_retries - 1:
-                return {"success": False, "error": "Timeout", "details": f"Connection or response timed out after {max_retries} attempts"}
-        except websockets.exceptions.InvalidMessage as e:
-            agent_logging.error(f"[WS] Invalid WebSocket handshake on attempt {attempt + 1}: {e}")
-            agent_logging.error(f"[WS] This usually means the server at {uri} is not a WebSocket server or is not responding correctly")
-            if attempt == max_retries - 1:
-                return {"success": False, "error": "InvalidMessage", "details": f"Server did not complete WebSocket handshake: {e}"}
-        except ConnectionRefusedError:
-            agent_logging.error(f"[WS] Connection refused on attempt {attempt + 1} - server may not be running")
-            if attempt == max_retries - 1:
-                return {"success": False, "error": "ConnectionRefused", "details": f"Cannot connect to {uri} - server may not be running"}
-        except websockets.exceptions.WebSocketException as e:
-            agent_logging.error(f"[WS] WebSocket error on attempt {attempt + 1}: {type(e).__name__}: {e}")
-            if attempt == max_retries - 1:
-                return {"success": False, "error": type(e).__name__, "details": str(e)}
-        except Exception as e:
-            agent_logging.error(f"[WS] Unexpected error on attempt {attempt + 1}: {type(e).__name__}: {e}")
-            agent_logging.error(f"[WS] Error details:", exc_info=True)
-            if attempt == max_retries - 1:
-                return {"success": False, "error": type(e).__name__, "details": str(e)}
-        
-        if attempt < max_retries - 1:
-            wait_time = (attempt + 1) * 0.5
-            agent_logging.info(f"[WS] Waiting {wait_time}s before retry...")
-            await asyncio.sleep(wait_time)
+    # Connect to the WebSocket server
+    try:
+        ws=create_connection(uri)
+        logging.info("Websocket connection successful.")
+    except ConnectionRefusedError as e:
+        logging.error(f"Connection to {uri} refused: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"Exception while connecting to {uri}: {e}")
+        return None
     
-    return {"success": False, "error": "MaxRetriesExceeded", "details": f"Failed after {max_retries} attempts"}
-
+    if ws:
+        for attempt in range(max_retries):
+            try:
+                logging.info(f"Sending message via websocket: {json.dumps(message)}")
+                ws.send(json.dumps(message))
+                # Wait for response with timeout
+                response = ws.recv()
+                logging.info(f"Received response: {response}")
+                ws.close()
+                return json.loads(response)
+            except websockets.exceptions.ConnectionClosed as e:
+                logging.error(f"WebSocket connection closed: {e}")
+                break
+            except Exception as e:
+                logging.error(f"Error during WebSocket communication: {e}")
+                if attempt < max_retries - 1:
+                    ws.close()
+                    logging.info(f"Retrying... ({attempt + 1}/{max_retries})")
+                else:
+                    logging.error("Max retries reached. Giving up.")
+                    ws.close()
+                    return "WebSocket Message Failed"
+        ws.close()
+    
+    
 
 def websocket_update_ue(action, ue_entry):
     """
@@ -143,60 +137,23 @@ def websocket_update_ue(action, ue_entry):
     if message:
         agent_logging.info(f"[UE_UPDATE] Preparing to send websocket message")
         
-        # Run the async operation and wait for completion
         try:
-            # Check if there's already a running event loop
-            try:
-                loop = asyncio.get_running_loop()
-                agent_logging.info(f"[UE_UPDATE] Found running event loop, using run_coroutine_threadsafe")
-                # We're in an async context, need to run in a separate thread
-                import concurrent.futures
-                import threading
-                
-                # Create a new event loop in a separate thread
-                def run_in_thread():
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    try:
-                        return new_loop.run_until_complete(send_ws_message(message))
-                    finally:
-                        new_loop.close()
-                
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(run_in_thread)
-                    result = future.result(timeout=20)  # 20 second total timeout
-                    agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
-                    return result
-                    
-            except RuntimeError:
-                # No running event loop, we can use asyncio.run()
-                agent_logging.info(f"[UE_UPDATE] No running event loop, using asyncio.run()")
-                result = asyncio.run(send_ws_message(message))
-                agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
-                return result
-                
-        except concurrent.futures.TimeoutError:
-            agent_logging.error(f"[UE_UPDATE] Timeout waiting for websocket operation")
-            return {
-                "success": False,
-                "error": "Timeout",
-                "details": "Operation timed out after 20 seconds"
-            }
+            response = send_ws_message(message)
+            agent_logging.info(f"[UE_UPDATE] Websocket response: {response}")
+            return response
         except Exception as e:
-            agent_logging.error(f"[UE_UPDATE] Error executing websocket call: {type(e).__name__}: {e}")
-            agent_logging.error(f"[UE_UPDATE] Error details:", exc_info=True)
+            agent_logging.error(f"[UE_UPDATE] Error sending websocket message: {type(e).__name__}: {e}")
             return {
-                "success": False, 
-                "error": type(e).__name__, 
-                "details": str(e)
+                "status": "error",
+                "error": str(e)
             }
     else:
-        agent_logging.warning(f"[UE_UPDATE] No message to send (invalid action: {action})")
+        agent_logging.error(f"[UE_UPDATE] Invalid action: {action}")
         return {
-            "success": False,
-            "error": "InvalidAction",
-            "details": f"Invalid action: {action}"
+            "status": "error",
+            "error": "Invalid UE_UPDATE action"
         }
+           
 
 
 def read_users_db_file():
