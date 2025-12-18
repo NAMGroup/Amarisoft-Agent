@@ -141,6 +141,34 @@ def read_users_db_file():
         return []
 
 
+def convert_hex_strings_in_ue(ue_data):
+    """
+    Convert hex string values to integers in UE data.
+    Handles fields like amf that may be passed as "0x9001".
+    """
+    if isinstance(ue_data, dict):
+        converted = {}
+        for key, value in ue_data.items():
+            if isinstance(value, str) and value.startswith('0x'):
+                try:
+                    # Convert hex string to integer
+                    converted[key] = int(value, 16)
+                except ValueError:
+                    # If conversion fails, keep original value
+                    converted[key] = value
+            elif isinstance(value, list):
+                # Recursively handle lists
+                converted[key] = [convert_hex_strings_in_ue(item) for item in value]
+            elif isinstance(value, dict):
+                # Recursively handle nested dicts
+                converted[key] = convert_hex_strings_in_ue(value)
+            else:
+                converted[key] = value
+        return converted
+    else:
+        return ue_data
+
+
 def update_ues_websocket_db(params):
     """
     Write users database file with UE updates via websocket.
@@ -149,6 +177,8 @@ def update_ues_websocket_db(params):
         params: Can be either:
             - A list of UE dictionaries
             - A string in users.db.cfg format (with ue_db: prefix, comments, etc.)
+    
+    Note: Hex values can be passed as strings (e.g., "0x9001") and will be converted to integers.
     """
     # Read current state
     current_ues = read_users_db_file()
@@ -182,6 +212,8 @@ def update_ues_websocket_db(params):
     elif isinstance(params, list):
         # Already a list of UE dictionaries
         new_ues = params
+        # Convert any hex strings to integers
+        new_ues = [convert_hex_strings_in_ue(ue) for ue in new_ues]
     else:
         agent_logging.error(f"Invalid params type: {type(params)}. Expected list or string.")
         return None
