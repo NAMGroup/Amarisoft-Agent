@@ -84,7 +84,7 @@ def restart(debug_mode,params):
        write_conf_file(params)
     exec_command(cmd2send)   
     
-def get_ue_slices(params):
+def get_ue_slices(debug_mode, params):
     target_imsi = None
     # params is expected to be a list of dicts from JSON
     for data in params:
@@ -98,10 +98,11 @@ def get_ue_slices(params):
     ues = read_users_db_file()
     for ue in ues:
         if ue.get('imsi') == target_imsi:
-            return {
+            response = {
                 "imsi": ue.get("imsi"),
                 "pdn_list": ue.get("pdn_list")
             }
+            return response
     return None
 
 def update_ues(debug_mode, params):
