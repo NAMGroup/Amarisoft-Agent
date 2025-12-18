@@ -64,12 +64,13 @@ def write_conf_file(params):
 
 def send_ws_message(message, max_retries=3, timeout=5):
     """Send a message via WebSocket with retry logic."""
-    uri = "ws://172.16.10.207:9000"
+    uri = "ws://172.16.100.207:9000"
     ws: WebSocket
     
     # Connect to the WebSocket server
     try:
         ws=create_connection(uri, timeout=timeout)
+        response = ws.recv()
         logging.info("Websocket connection successful.")
     except ConnectionRefusedError as e:
         logging.error(f"Connection to {uri} refused: {e}")
