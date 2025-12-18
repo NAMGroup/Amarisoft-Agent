@@ -178,13 +178,13 @@ def update_ues_websocket_db(params):
             new_ues = json.loads(content)
         except json.JSONDecodeError as e:
             agent_logging.error(f"Error parsing UE data: {e}")
-            return
+            return None
     elif isinstance(params, list):
         # Already a list of UE dictionaries
         new_ues = params
     else:
         agent_logging.error(f"Invalid params type: {type(params)}. Expected list or string.")
-        return
+        return None
 
     # Create dictionaries keyed by IMSI for easy comparison
     # Current UEs: {imsi: ue_data}
@@ -249,3 +249,10 @@ def update_ues_websocket_db(params):
     with open("./shared/users.db.cfg", 'w') as conf:
         conf.write("ue_db: ")
         json.dump(final_ues_list, conf, indent=4)
+    
+    return {
+        "status": "success",
+        "new": len(to_add) - len(to_remove),
+        "updated": len(to_remove),
+        "total": len(final_ues_list)
+    }
