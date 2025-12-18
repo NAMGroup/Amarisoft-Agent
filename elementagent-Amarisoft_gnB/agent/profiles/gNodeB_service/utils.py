@@ -145,10 +145,43 @@ def websocket_update_ue(action, ue_entry):
         
         # Run the async operation and wait for completion
         try:
-            agent_logging.info(f"[UE_UPDATE] Executing websocket operation (blocking until complete)")
-            result = asyncio.run(send_ws_message(message))
-            agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
-            return result
+            # Check if there's already a running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                agent_logging.info(f"[UE_UPDATE] Found running event loop, using run_coroutine_threadsafe")
+                # We're in an async context, need to run in a separate thread
+                import concurrent.futures
+                import threading
+                
+                # Create a new event loop in a separate thread
+                def run_in_thread():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(send_ws_message(message))
+                    finally:
+                        new_loop.close()
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_in_thread)
+                    result = future.result(timeout=20)  # 20 second total timeout
+                    agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
+                    return result
+                    
+            except RuntimeError:
+                # No running event loop, we can use asyncio.run()
+                agent_logging.info(f"[UE_UPDATE] No running event loop, using asyncio.run()")
+                result = asyncio.run(send_ws_message(message))
+                agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
+                return result
+                
+        except concurrent.futures.TimeoutError:
+            agent_logging.error(f"[UE_UPDATE] Timeout waiting for websocket operation")
+            return {
+                "success": False,
+                "error": "Timeout",
+                "details": "Operation timed out after 20 seconds"
+            }
         except Exception as e:
             agent_logging.error(f"[UE_UPDATE] Error executing websocket call: {type(e).__name__}: {e}")
             agent_logging.error(f"[UE_UPDATE] Error details:", exc_info=True)
