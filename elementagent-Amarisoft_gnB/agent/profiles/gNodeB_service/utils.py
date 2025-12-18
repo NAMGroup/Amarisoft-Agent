@@ -1,8 +1,6 @@
 import json
 import subprocess
 import re
-import asyncio
-import websockets
 from websocket import create_connection, WebSocket
 import logging
 
@@ -64,14 +62,14 @@ def write_conf_file(params):
             agent_logging.info(f"Yeah  this param is not available... {param}")
 
 
-async def send_ws_message(message, max_retries=3):
+def send_ws_message(message, max_retries=3, timeout=5):
     """Send a message via WebSocket with retry logic."""
     uri = "ws://172.16.10.207:9000"
     ws: WebSocket
     
     # Connect to the WebSocket server
     try:
-        ws=create_connection(uri)
+        ws=create_connection(uri, timeout=timeout)
         logging.info("Websocket connection successful.")
     except ConnectionRefusedError as e:
         logging.error(f"Connection to {uri} refused: {e}")
@@ -86,12 +84,13 @@ async def send_ws_message(message, max_retries=3):
                 logging.info(f"Sending message via websocket: {json.dumps(message)}")
                 ws.send(json.dumps(message))
                 # Wait for response with timeout
+                ws.settimeout(timeout)
                 response = ws.recv()
                 logging.info(f"Received response: {response}")
                 ws.close()
                 return json.loads(response)
-            except websockets.exceptions.ConnectionClosed as e:
-                logging.error(f"WebSocket connection closed: {e}")
+            except ConnectionError as e:
+                logging.error(f"WebSocket connection error: {e}")
                 break
             except Exception as e:
                 logging.error(f"Error during WebSocket communication: {e}")
