@@ -26,7 +26,8 @@ def process_event(event,debug_mode,params):
         callback = callbacks[event]
         agent_logging.info(f"Callback registered--> {callback}")
         agent_logging.info(debug_mode)
-        callback(debug_mode,params)
+        result = callback(debug_mode,params)
+        return result
     else:
         agent_logging.info("No callback registered")
         return False
