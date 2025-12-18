@@ -66,13 +66,26 @@ def write_conf_file(params):
 async def send_ws_message(message):
     """Send a message via WebSocket to localhost:9000."""
     uri = "ws://172.16.10.207:9000"
+    agent_logging.info(f"[WS] Connecting to {uri}")
+    agent_logging.info(f"[WS] Message to send: {json.dumps(message, indent=2)}")
+    
     try:
         async with websockets.connect(uri) as websocket:
-            await websocket.send(json.dumps(message))
+            agent_logging.info(f"[WS] Connected successfully")
+            message_str = json.dumps(message)
+            agent_logging.info(f"[WS] Sending {len(message_str)} bytes")
+            await websocket.send(message_str)
+            agent_logging.info(f"[WS] Message sent, waiting for response...")
             response = await websocket.recv()
-            agent_logging.info(f"Websocket response: {response}")
+            agent_logging.info(f"[WS] Response received: {response}")
+            return response
+    except websockets.exceptions.WebSocketException as e:
+        agent_logging.error(f"[WS] WebSocket error: {type(e).__name__}: {e}")
+        raise
     except Exception as e:
-        agent_logging.error(f"Websocket error: {e}")
+        agent_logging.error(f"[WS] Unexpected error: {type(e).__name__}: {e}")
+        agent_logging.error(f"[WS] Error details:", exc_info=True)
+        raise
 
 
 def websocket_update_ue(action, ue_entry):
@@ -83,29 +96,46 @@ def websocket_update_ue(action, ue_entry):
         action: 'add' or 'remove'
         ue_entry: dict containing UE details
     """
+    agent_logging.info(f"[UE_UPDATE] Action: {action}")
+    agent_logging.info(f"[UE_UPDATE] UE Entry: {json.dumps(ue_entry, indent=2)}")
+    
     message = {}
     if action == 'add':
         message = {
             "message": "ue_add",
             "ue_db": [ue_entry]
         }
+        agent_logging.info(f"[UE_ADD] Adding UE with IMSI: {ue_entry.get('imsi')}")
     elif action == 'remove':
         message = {
             "message": "ue_remove",
             "imsi": ue_entry.get('imsi')
         }
+        agent_logging.info(f"[UE_REMOVE] Removing UE with IMSI: {ue_entry.get('imsi')}")
     
     if message:
-        agent_logging.info(f"Sending websocket message: {message}")
+        agent_logging.info(f"[UE_UPDATE] Preparing to send websocket message")
         coro = send_ws_message(message)
         try:
             loop = asyncio.get_running_loop()
+            agent_logging.info(f"[UE_UPDATE] Found running event loop")
             if loop.is_running():
-                loop.create_task(coro)
+                agent_logging.info(f"[UE_UPDATE] Creating task in running loop")
+                task = loop.create_task(coro)
+                agent_logging.info(f"[UE_UPDATE] Task created: {task}")
             else:
-                asyncio.run(coro)
-        except RuntimeError:
-            asyncio.run(coro)
+                agent_logging.info(f"[UE_UPDATE] Loop not running, using asyncio.run()")
+                result = asyncio.run(coro)
+                agent_logging.info(f"[UE_UPDATE] asyncio.run() completed with result: {result}")
+        except RuntimeError as e:
+            agent_logging.info(f"[UE_UPDATE] RuntimeError (no loop), using asyncio.run(): {e}")
+            result = asyncio.run(coro)
+            agent_logging.info(f"[UE_UPDATE] asyncio.run() completed with result: {result}")
+        except Exception as e:
+            agent_logging.error(f"[UE_UPDATE] Error executing websocket call: {type(e).__name__}: {e}")
+            agent_logging.error(f"[UE_UPDATE] Error details:", exc_info=True)
+    else:
+        agent_logging.warning(f"[UE_UPDATE] No message to send (invalid action: {action})")
 
 
 def read_users_db_file():
