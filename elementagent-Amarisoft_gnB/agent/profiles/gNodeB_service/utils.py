@@ -65,7 +65,7 @@ def write_conf_file(params):
 
 async def send_ws_message(message):
     """Send a message via WebSocket to localhost:9000."""
-    uri = "ws://localhost:9000"
+    uri = "ws://172.16.10.207:9000"
     try:
         async with websockets.connect(uri) as websocket:
             await websocket.send(json.dumps(message))
