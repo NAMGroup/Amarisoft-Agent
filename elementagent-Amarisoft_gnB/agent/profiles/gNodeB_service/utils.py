@@ -114,23 +114,28 @@ def read_users_db_file():
         with open("./shared/users.db.cfg", 'r') as f:
             content = f.read()
             
-        # Remove comments
+        # Remove comments (both /* */ and //)
         content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
-        content = re.sub(r'//.*', '', content)
+        content = re.sub(r'//[^\n]*', '', content)
         
         # Remove prefix
         content = content.replace('ue_db:', '').strip()
         
-        # Quote keys (simple heuristic: word characters followed by colon)
-        content = re.sub(r'(\w+)\s*:', r'"\1":', content)
-        
-        # Handle hex values
+        # Handle hex values before quoting keys
         content = re.sub(r'0x([0-9a-fA-F]+)', lambda m: str(int(m.group(1), 16)), content)
         
-        # Handle trailing commas
+        # Quote unquoted keys - match word characters followed by colon (but not already quoted)
+        content = re.sub(r'([{,]\s*)(\w+)(\s*):', r'\1"\2"\3:', content)
+        
+        # Handle trailing commas before closing braces/brackets
         content = re.sub(r',(\s*[}\]])', r'\1', content)
 
-        return json.loads(content)
+        result = json.loads(content)
+        return result
+    except json.JSONDecodeError as e:
+        agent_logging.error(f"Error parsing users.db.cfg as JSON: {e}")
+        agent_logging.error(f"Problematic content around error: {content[max(0, e.pos-100):min(len(content), e.pos+100)]}")
+        return []
     except Exception as e:
         agent_logging.error(f"Error reading users.db.cfg: {e}")
         return []
