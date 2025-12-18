@@ -122,3 +122,19 @@ def update_ues(debug_mode, params):
     """Update UEs in users database file with UE updates via websocket."""
     response = update_ues_websocket_db(params)
     return response
+
+def get_all_ues(debug_mode, params):
+    """Get all UEs from the users database configuration file."""
+    ues = read_users_db_file()
+    if ues:
+        return {
+            "status": "success",
+            "count": len(ues),
+            "ues": ues
+        }
+    else:
+        return {
+            "status": "success",
+            "count": 0,
+            "ues": []
+        }
