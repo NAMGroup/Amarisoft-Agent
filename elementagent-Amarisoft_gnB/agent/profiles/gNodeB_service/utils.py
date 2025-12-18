@@ -63,29 +63,53 @@ def write_conf_file(params):
             agent_logging.info(f"Yeah  this param is not available... {param}")
 
 
-async def send_ws_message(message):
-    """Send a message via WebSocket to localhost:9000."""
+async def send_ws_message(message, timeout=5, max_retries=3):
+    """Send a message via WebSocket with retry logic."""
     uri = "ws://172.16.10.207:9000"
     agent_logging.info(f"[WS] Connecting to {uri}")
     agent_logging.info(f"[WS] Message to send: {json.dumps(message, indent=2)}")
     
-    try:
-        async with websockets.connect(uri) as websocket:
-            agent_logging.info(f"[WS] Connected successfully")
-            message_str = json.dumps(message)
-            agent_logging.info(f"[WS] Sending {len(message_str)} bytes")
-            await websocket.send(message_str)
-            agent_logging.info(f"[WS] Message sent, waiting for response...")
-            response = await websocket.recv()
-            agent_logging.info(f"[WS] Response received: {response}")
-            return response
-    except websockets.exceptions.WebSocketException as e:
-        agent_logging.error(f"[WS] WebSocket error: {type(e).__name__}: {e}")
-        raise
-    except Exception as e:
-        agent_logging.error(f"[WS] Unexpected error: {type(e).__name__}: {e}")
-        agent_logging.error(f"[WS] Error details:", exc_info=True)
-        raise
+    for attempt in range(max_retries):
+        try:
+            agent_logging.info(f"[WS] Attempt {attempt + 1}/{max_retries}")
+            async with websockets.connect(uri, timeout=timeout) as websocket:
+                agent_logging.info(f"[WS] Connected successfully")
+                message_str = json.dumps(message)
+                agent_logging.info(f"[WS] Sending {len(message_str)} bytes")
+                await websocket.send(message_str)
+                agent_logging.info(f"[WS] Message sent, waiting for response...")
+                response = await asyncio.wait_for(websocket.recv(), timeout=timeout)
+                agent_logging.info(f"[WS] Response received: {response}")
+                return {"success": True, "response": response}
+        except asyncio.TimeoutError:
+            agent_logging.error(f"[WS] Timeout on attempt {attempt + 1}")
+            if attempt == max_retries - 1:
+                return {"success": False, "error": "Timeout", "details": f"Connection or response timed out after {max_retries} attempts"}
+        except websockets.exceptions.InvalidMessage as e:
+            agent_logging.error(f"[WS] Invalid WebSocket handshake on attempt {attempt + 1}: {e}")
+            agent_logging.error(f"[WS] This usually means the server at {uri} is not a WebSocket server or is not responding correctly")
+            if attempt == max_retries - 1:
+                return {"success": False, "error": "InvalidMessage", "details": f"Server did not complete WebSocket handshake: {e}"}
+        except ConnectionRefusedError:
+            agent_logging.error(f"[WS] Connection refused on attempt {attempt + 1} - server may not be running")
+            if attempt == max_retries - 1:
+                return {"success": False, "error": "ConnectionRefused", "details": f"Cannot connect to {uri} - server may not be running"}
+        except websockets.exceptions.WebSocketException as e:
+            agent_logging.error(f"[WS] WebSocket error on attempt {attempt + 1}: {type(e).__name__}: {e}")
+            if attempt == max_retries - 1:
+                return {"success": False, "error": type(e).__name__, "details": str(e)}
+        except Exception as e:
+            agent_logging.error(f"[WS] Unexpected error on attempt {attempt + 1}: {type(e).__name__}: {e}")
+            agent_logging.error(f"[WS] Error details:", exc_info=True)
+            if attempt == max_retries - 1:
+                return {"success": False, "error": type(e).__name__, "details": str(e)}
+        
+        if attempt < max_retries - 1:
+            wait_time = (attempt + 1) * 0.5
+            agent_logging.info(f"[WS] Waiting {wait_time}s before retry...")
+            await asyncio.sleep(wait_time)
+    
+    return {"success": False, "error": "MaxRetriesExceeded", "details": f"Failed after {max_retries} attempts"}
 
 
 def websocket_update_ue(action, ue_entry):
@@ -95,6 +119,9 @@ def websocket_update_ue(action, ue_entry):
     Args:
         action: 'add' or 'remove'
         ue_entry: dict containing UE details
+    
+    Returns:
+        dict: Result of the websocket operation with success status
     """
     agent_logging.info(f"[UE_UPDATE] Action: {action}")
     agent_logging.info(f"[UE_UPDATE] UE Entry: {json.dumps(ue_entry, indent=2)}")
@@ -115,27 +142,28 @@ def websocket_update_ue(action, ue_entry):
     
     if message:
         agent_logging.info(f"[UE_UPDATE] Preparing to send websocket message")
-        coro = send_ws_message(message)
+        
+        # Run the async operation and wait for completion
         try:
-            loop = asyncio.get_running_loop()
-            agent_logging.info(f"[UE_UPDATE] Found running event loop")
-            if loop.is_running():
-                agent_logging.info(f"[UE_UPDATE] Creating task in running loop")
-                task = loop.create_task(coro)
-                agent_logging.info(f"[UE_UPDATE] Task created: {task}")
-            else:
-                agent_logging.info(f"[UE_UPDATE] Loop not running, using asyncio.run()")
-                result = asyncio.run(coro)
-                agent_logging.info(f"[UE_UPDATE] asyncio.run() completed with result: {result}")
-        except RuntimeError as e:
-            agent_logging.info(f"[UE_UPDATE] RuntimeError (no loop), using asyncio.run(): {e}")
-            result = asyncio.run(coro)
-            agent_logging.info(f"[UE_UPDATE] asyncio.run() completed with result: {result}")
+            agent_logging.info(f"[UE_UPDATE] Executing websocket operation (blocking until complete)")
+            result = asyncio.run(send_ws_message(message))
+            agent_logging.info(f"[UE_UPDATE] Operation completed with result: {result}")
+            return result
         except Exception as e:
             agent_logging.error(f"[UE_UPDATE] Error executing websocket call: {type(e).__name__}: {e}")
             agent_logging.error(f"[UE_UPDATE] Error details:", exc_info=True)
+            return {
+                "success": False, 
+                "error": type(e).__name__, 
+                "details": str(e)
+            }
     else:
         agent_logging.warning(f"[UE_UPDATE] No message to send (invalid action: {action})")
+        return {
+            "success": False,
+            "error": "InvalidAction",
+            "details": f"Invalid action: {action}"
+        }
 
 
 def read_users_db_file():
