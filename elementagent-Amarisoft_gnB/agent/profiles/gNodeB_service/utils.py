@@ -271,11 +271,18 @@ def update_ues_websocket_db(params):
     
     Note: Hex values can be passed as strings (e.g., "0x9001") and will be converted to integers.
     """
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Function called")
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Params type: {type(params)}")
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Params length: {len(params) if isinstance(params, (list, str)) else 'N/A'}")
+    
     # Read current state
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Reading current UE database...")
     current_ues = read_users_db_file()
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Current UEs count: {len(current_ues)}")
     
     # Handle different input formats
     if isinstance(params, str):
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Params is string, parsing...")
         # Parse the string as users.db.cfg format
         content = params
         
@@ -297,16 +304,20 @@ def update_ues_websocket_db(params):
         
         try:
             new_ues = json.loads(content)
+            agent_logging.info(f"[UPDATE_UES_WS_DB] Parsed {len(new_ues)} UEs from string")
         except json.JSONDecodeError as e:
-            agent_logging.error(f"Error parsing UE data: {e}")
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Error parsing UE data: {e}")
             return None
     elif isinstance(params, list):
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Params is list with {len(params)} items")
         # Already a list of UE dictionaries
         new_ues = params
         # Convert any hex strings to integers
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Converting hex strings...")
         new_ues = [convert_hex_strings_in_ue(ue) for ue in new_ues]
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Hex conversion complete")
     else:
-        agent_logging.error(f"Invalid params type: {type(params)}. Expected list or string.")
+        agent_logging.error(f"[UPDATE_UES_WS_DB] Invalid params type: {type(params)}. Expected list or string.")
         return None
 
     # Create dictionaries keyed by IMSI for easy comparison

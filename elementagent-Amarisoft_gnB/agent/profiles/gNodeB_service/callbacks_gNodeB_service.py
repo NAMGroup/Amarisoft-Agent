@@ -120,8 +120,22 @@ def get_ue_slices(debug_mode, params):
 
 def update_ues(debug_mode, params):
     """Update UEs in users database file with UE updates via websocket."""
-    response = update_ues_websocket_db(params)
-    return response
+    agent_logging.info(f"[UPDATE_UES_CALLBACK] Called with debug_mode={debug_mode}")
+    agent_logging.info(f"[UPDATE_UES_CALLBACK] Params type: {type(params)}")
+    agent_logging.info(f"[UPDATE_UES_CALLBACK] Params: {params}")
+    
+    try:
+        response = update_ues_websocket_db(params)
+        agent_logging.info(f"[UPDATE_UES_CALLBACK] Response: {response}")
+        return response
+    except Exception as e:
+        agent_logging.error(f"[UPDATE_UES_CALLBACK] Error: {type(e).__name__}: {e}")
+        agent_logging.error(f"[UPDATE_UES_CALLBACK] Error details:", exc_info=True)
+        return {
+            "status": "error",
+            "error": type(e).__name__,
+            "details": str(e)
+        }
 
 def get_all_ues(debug_mode, params):
     """Get all UEs from the users database configuration file.
