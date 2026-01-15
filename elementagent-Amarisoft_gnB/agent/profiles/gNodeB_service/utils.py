@@ -1,7 +1,6 @@
 import json
 import subprocess
 import re
-import os
 from websocket import create_connection, WebSocket
 import logging
 
@@ -11,22 +10,11 @@ logging.basicConfig(
 )
 agent_logging = logging.getLogger(__name__)
 
-# Configuration from environment variables
-MYCONF_FILE = os.getenv('MYCONF_FILE', './shared/myconf.cfg')
-USERS_DB_FILE = os.getenv('USERS_DB_FILE', './shared/users.db.cfg')
-WEBSOCKET_HOST = os.getenv('WEBSOCKET_HOST', '172.16.100.207')
-WEBSOCKET_PORT = os.getenv('WEBSOCKET_PORT', '9000')
-
 
 def exec_command(action_command, debug_mode=False):
     """Execute a shell command and log the output."""
     agent_logging.info(type(action_command))
     agent_logging.info(action_command)
-    
-    # Wrap systemctl commands with nsenter to execute on host
-    if isinstance(action_command, str) and 'systemctl' in action_command:
-        action_command = f"nsenter -t 1 -m -u -n -i {action_command}"
-        agent_logging.info(f"Wrapped with nsenter: {action_command}")
     
     process: subprocess.Popen[str]
     
@@ -59,13 +47,13 @@ def exec_command(action_command, debug_mode=False):
 def write_conf_file(params):
     """Write configuration parameters to myconf.cfg file."""
     # Clear file contents
-    with open(MYCONF_FILE, 'a+') as conf:
+    with open("./shared/myconf.cfg", 'a+') as conf:
         conf.truncate(0)
 
     # Start writing file
     for param in params:
         if param in params:
-            with open(MYCONF_FILE, mode="a") as conf:
+            with open("./shared/myconf.cfg", mode="a") as conf:
                 if any(param.startswith(prefix) for prefix in ["PRMT_AMF_ADDR", "PRMT_GTP_ADDR", "PRMT_PLMN", "PRMT_MOD_UL", "PRMT_MOD_DL"]):
                     conf.write("#define  {} \"{}\"\n".format(param, params[param]))
                 else:
@@ -76,7 +64,7 @@ def write_conf_file(params):
 
 def send_ws_message(message, max_retries=3, timeout=5):
     """Send a message via WebSocket with retry logic."""
-    uri = f"ws://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}"
+    uri = "ws://172.16.100.207:9000"
     ws: WebSocket
     
     # Connect to the WebSocket server
@@ -171,7 +159,7 @@ def websocket_update_ue(action, ue_entry):
 def read_users_db_file():
     """Read and parse the users.db.cfg file."""
     try:
-        with open(USERS_DB_FILE, 'r') as f:
+        with open("./shared/users.db.cfg", 'r') as f:
             content = f.read()
             
         # Remove comments (both /* */ and //)
@@ -349,7 +337,7 @@ def update_ues_websocket_db(params):
              final_ues_list.append(ue)
 
     # Update the file
-    with open(USERS_DB_FILE, 'w') as conf:
+    with open("./shared/users.db.cfg", 'w') as conf:
         conf.write("ue_db: ")
         json.dump(final_ues_list, conf, indent=4)
     

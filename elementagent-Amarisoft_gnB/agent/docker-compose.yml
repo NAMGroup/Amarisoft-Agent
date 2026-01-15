@@ -6,23 +6,15 @@ services:
       dockerfile: amari_gnb.dockerfile
       network: host
     privileged: true
-    pid: host
     ports:
       - "28080:80"
     volumes:
       # - ./src:/agent
       - ./src/shared:/agent/shared
       - ./profiles:/agent/profiles
-      - /run/systemd:/run/systemd
-      - /var/run/dbus:/var/run/dbus
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    environment:
-      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
-      - MYCONF_FILE=./shared/myconf.cfg
-      - USERS_DB_FILE=./shared/users.db.cfg
-      - WEBSOCKET_HOST=172.16.100.207
-      - WEBSOCKET_PORT=9000
-    command: uvicorn openapi_server.main:app --host 0.0.0.0 --port 80 --reload
+      - /run/systemd/system:/run/systemd/system 
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket 
+    command: bash -c "apt-get update && apt-get -y install systemd && pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt && uvicorn openapi_server.main:app --host 0.0.0.0 --port 80 --reload"
     # command: bash -c "pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt && tail -f /dev/null"
   
   # node-exporter:
