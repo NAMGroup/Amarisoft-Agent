@@ -158,10 +158,13 @@ async def patch_resource(
         print(main.myAgent.callbacks.callbacks)
         # if main.myAgent.profile_actions[main.myAgent.action_present] is None:
         if main.myAgent.action_present in main.myAgent.profile_actions:
-            if main.myAgent.callbacks.process_event(main.myAgent.action_present, main.myAgent.CMD_DEBUG_MODE, main.myAgent.action_params) is False:
+            callback_result = main.myAgent.callbacks.process_event(main.myAgent.action_present, main.myAgent.CMD_DEBUG_MODE, main.myAgent.action_params)
+            if callback_result is False:
                 print("No callback registered")
                 return JSONResponse(status_code=405, content={"code": "405", "reason":"Command Callback Not Found", "message": "Command Callback not present", "status":"", "reference_error":"", "base_type":"","schema_location":"", "type":""})
-
+            else:
+                # Success - return callback result if it exists, otherwise return the resource
+                return callback_result if callback_result is not None else newResource
 
         else:
             print("Oooops")
