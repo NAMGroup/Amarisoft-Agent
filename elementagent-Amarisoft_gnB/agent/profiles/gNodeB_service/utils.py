@@ -74,22 +74,36 @@ def write_conf_file(params):
             agent_logging.info(f"Yeah  this param is not available... {param}")
 
 
-def send_ws_message(message, max_retries=3, timeout=5):
-    """Send a message via WebSocket with retry logic."""
+def send_ws_message(message, max_retries=3, timeout=5, retry_delay=0.5):
+    """Send a message via WebSocket with retry logic for both connection and sending."""
     uri = f"ws://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}"
     ws: WebSocket
     
-    # Connect to the WebSocket server
-    try:
-        ws=create_connection(uri, timeout=timeout)
-        response = ws.recv()
-        logging.info("Websocket connection successful.")
-    except ConnectionRefusedError as e:
-        logging.error(f"Connection to {uri} refused: {e}")
-        return None
-    except Exception as e:
-        logging.error(f"Exception while connecting to {uri}: {e}")
-        return None
+    # Retry loop for connection
+    for conn_attempt in range(max_retries):
+        try:
+            ws = create_connection(uri, timeout=timeout)
+            response = ws.recv()
+            logging.info("Websocket connection successful.")
+            break
+        except ConnectionRefusedError as e:
+            logging.error(f"Connection to {uri} refused (attempt {conn_attempt + 1}/{max_retries}): {e}")
+            if conn_attempt < max_retries - 1:
+                import time
+                time.sleep(retry_delay * (conn_attempt + 1))  # Exponential backoff
+                logging.info(f"Retrying connection...")
+            else:
+                logging.error(f"Failed to connect after {max_retries} attempts")
+                return None
+        except Exception as e:
+            logging.error(f"Exception while connecting to {uri} (attempt {conn_attempt + 1}/{max_retries}): {e}")
+            if conn_attempt < max_retries - 1:
+                import time
+                time.sleep(retry_delay * (conn_attempt + 1))
+                logging.info(f"Retrying connection...")
+            else:
+                logging.error(f"Failed to connect after {max_retries} attempts")
+                return None
     
     if ws:
         for attempt in range(max_retries):
@@ -141,10 +155,10 @@ def websocket_update_ue(action, ue_entry):
         agent_logging.info(f"[UE_ADD] Adding UE with IMSI: {ue_entry.get('imsi')}")
     elif action == 'remove':
         message = {
-            "message": "ue_remove",
+            "message": "ue_del",
             "imsi": ue_entry.get('imsi')
         }
-        agent_logging.info(f"[UE_REMOVE] Removing UE with IMSI: {ue_entry.get('imsi')}")
+        agent_logging.info(f"[UE_DELETE] Removing UE with IMSI: {ue_entry.get('imsi')}")
     
     if message:
         agent_logging.info(f"[UE_UPDATE] Preparing to send websocket message")
@@ -297,12 +311,16 @@ def update_ues_websocket_db(params):
         if imsi:
             current_map[imsi] = ue
     
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Current IMSIs in database: {list(current_map.keys())}")
+    
     # New UEs from params: {imsi: ue_data}
     new_map = {}
     for ue in new_ues:
         imsi = ue.get('imsi')
         if imsi:
             new_map[imsi] = ue
+    
+    agent_logging.info(f"[UPDATE_UES_WS_DB] New IMSIs from request: {list(new_map.keys())}")
     
     to_remove = []
     to_add = []
@@ -311,31 +329,111 @@ def update_ues_websocket_db(params):
     for imsi, ue in current_map.items():
         if imsi not in new_map:
             # If missing, we keep
-            pass
-        elif new_map[imsi] != ue:
-            # Patch logic: update current ue with new fields
-            merged_ue = ue.copy()
-            merged_ue.update(new_map[imsi])
+            agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: Keeping (not in new request)")
+        else:
+            # Use the new UE data directly (REPLACE, not merge)
+            # This ensures removed fields are actually removed
+            new_ue = new_map[imsi]
             
-            if merged_ue != ue:
+            # Compare the new UE with the current one
+            agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: Comparing UEs...")
+            agent_logging.info(f"[UPDATE_UES_WS_DB] Current DB UE keys: {sorted(ue.keys())}")
+            agent_logging.info(f"[UPDATE_UES_WS_DB] New UE keys: {sorted(new_ue.keys())}")
+            
+            # Check for key differences
+            old_keys = set(ue.keys())
+            new_keys = set(new_ue.keys())
+            
+            if old_keys != new_keys:
+                agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: Keys changed")
+                agent_logging.info(f"[UPDATE_UES_WS_DB]   Added keys: {new_keys - old_keys}")
+                agent_logging.info(f"[UPDATE_UES_WS_DB]   Removed keys: {old_keys - new_keys}")
+            
+            # Deep comparison
+            if new_ue != ue:
                 # If changed, we remove and re-add
+                agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: MODIFIED - will remove then re-add")
+                
+                # Show what changed
+                all_keys = old_keys | new_keys
+                for key in sorted(all_keys):
+                    if key not in ue:
+                        agent_logging.info(f"[UPDATE_UES_WS_DB]   New field '{key}': {new_ue[key]}")
+                    elif key not in new_ue:
+                        agent_logging.info(f"[UPDATE_UES_WS_DB]   Removed field '{key}'")
+                    elif ue[key] != new_ue[key]:
+                        agent_logging.info(f"[UPDATE_UES_WS_DB]   Changed '{key}': {ue[key]} -> {new_ue[key]}")
+                
                 to_remove.append(ue)
-                to_add.append(merged_ue)
+                to_add.append(new_ue)
+            else:
+                agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: Unchanged")
             
-            # Update new_map with the merged version so it gets written to file
-            new_map[imsi] = merged_ue
+            # Keep the new UE data for file writing
+            # (new_map[imsi] already has the correct data)
             
     # Check for additions
     for imsi, ue in new_map.items():
         if imsi not in current_map:
+            agent_logging.info(f"[UPDATE_UES_WS_DB] IMSI {imsi}: NEW - will add")
             to_add.append(ue)
             
     # Execute websocket calls
+    agent_logging.info(f"[UPDATE_UES_WS_DB] Summary - Remove: {len(to_remove)}, Add: {len(to_add)}")
+    
+    import time
+    
+    # Process removes first and wait for each to complete
+    failed_removes = []
     for ue in to_remove:
-        websocket_update_ue('remove', ue)
+        imsi = ue.get('imsi')
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Removing IMSI {imsi}...")
+        result = websocket_update_ue('remove', ue)
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Remove result for {imsi}: {result}")
         
+        # Check if remove failed (None means connection failed, dict with error means server error)
+        if result is None:
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Remove failed for {imsi}: Connection failed (no response)")
+            failed_removes.append(imsi)
+        elif isinstance(result, dict) and result.get('error'):
+            agent_logging.warning(f"[UPDATE_UES_WS_DB] Remove failed for {imsi}: {result.get('error')}")
+            failed_removes.append(imsi)
+        elif isinstance(result, str) and 'Failed' in result:
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Remove failed for {imsi}: {result}")
+            failed_removes.append(imsi)
+        else:
+            agent_logging.info(f"[UPDATE_UES_WS_DB] Remove successful for {imsi}")
+        
+        # Give websocket time to process the remove
+        time.sleep(0.1)
+    
+    # Extra delay after all removes before starting adds
+    if to_remove and to_add:
+        agent_logging.info(f"[UPDATE_UES_WS_DB] All removes sent. Waiting 1s before adds...")
+        time.sleep(1.0)
+        
+    # Now process adds
     for ue in to_add:
-        websocket_update_ue('add', ue)
+        imsi = ue.get('imsi')
+        
+        # Skip add if the remove for this IMSI failed (UE still exists)
+        if imsi in failed_removes:
+            agent_logging.warning(f"[UPDATE_UES_WS_DB] Skipping add for {imsi}: previous remove failed, UE may still exist")
+            continue
+            
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Adding IMSI {imsi}...")
+        result = websocket_update_ue('add', ue)
+        agent_logging.info(f"[UPDATE_UES_WS_DB] Add result for {imsi}: {result}")
+        
+        # Check if add failed (None means connection failed, dict with error means server error)
+        if result is None:
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Add failed for {imsi}: Connection failed (no response)")
+        elif isinstance(result, dict) and result.get('error'):
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Add failed for {imsi}: {result.get('error')}")
+        elif isinstance(result, str) and 'Failed' in result:
+            agent_logging.error(f"[UPDATE_UES_WS_DB] Add failed for {imsi}: {result}")
+        else:
+            agent_logging.info(f"[UPDATE_UES_WS_DB] Add successful for {imsi}")
 
     # Reconstruct the full list for writing to file
     # We start with UEs that were kept (not in new_map)
