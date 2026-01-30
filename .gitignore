@@ -5,6 +5,7 @@ shared/default.echo
 *.log
 .venv/
 .DS_Store
+.idea/
 agent/src/shared/default.echo
 agent/error.log
 agent/agent.log

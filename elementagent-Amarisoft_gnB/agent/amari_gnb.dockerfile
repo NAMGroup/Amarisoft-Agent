@@ -3,12 +3,20 @@ FROM python:3.9
 # 
 WORKDIR /agent
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    systemd \
+    util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
 # 
 COPY ./requirements.txt /radio_mgmt_agent/requirements.txt
 
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt
+
 # 
 # RUN pip install huawei-lte-api
-# RUN pip install --no-cache-dir --upgrade -r /radio_mgmt_agent/requirements.txt
 # ENV PYTHONPATH /agent
 # 
 
