@@ -541,3 +541,15 @@ Log levels are set to `INFO` by default, with detailed logging for:
 - UE database operations
 - Command execution
 - Registration processes
+
+---
+
+## Acknowledgements
+
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/255px-Flag_of_Europe.svg.png" alt="European Union Flag" width="80" style="vertical-align: middle;"/>
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://osl.etsi.org/ecosystem/logos/p2code.jpg" alt="P2CODE Project" width="120" style="vertical-align: middle;"/>
+</p>
+
+Co-funded by the European Union ([P2CODE](https://p2code-project.eu/), G.A. No.101093069) . Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.
