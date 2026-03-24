@@ -547,15 +547,15 @@ Log levels are set to `INFO` by default, with detailed logging for:
 ## Acknowledgements
 
 <p align="center">
-  
-  <img src="https://osl.etsi.org/ecosystem/logos/p2code.jpg" alt="P2CODE Project" width="120" style="vertical-align: middle;"/>
+  <img src="https://osl.etsi.org/ecosystem/logos/p2code.jpg" alt="P2CODE Project" height="60" style="vertical-align: middle;"/>
   &nbsp;&nbsp;&nbsp;
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/255px-Flag_of_Europe.svg.png" alt="European Union Flag" width="80" style="vertical-align: middle;"/>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/255px-Flag_of_Europe.svg.png" alt="European Union Flag" height="60" style="vertical-align: middle;"/>
   &nbsp;&nbsp;&nbsp;
-<img src="https://trustchain.ngi.eu/wp-content/uploads/2023/01/NGI-trustchain.png.webp" alt="NGI TrustChain project" width="120" style="vertical-align: middle;"/>
+  <img src="https://trustchain.ngi.eu/wp-content/uploads/2023/01/NGI-trustchain.png.webp" alt="NGI TrustChain project" height="60" style="vertical-align: middle;"/>
 </p>
 
-This project has received funding from the European Union ([P2CODE](https://p2code-project.eu/), G.A. No.101093069).
-This project has received funding from the European Union's Horizon Europe research and innovation programme through the NGI TrustChain project.
+* This project has received funding from the European Union ([P2CODE](https://p2code-project.eu/), G.A. No.101093069).
+
+* This project has received funding from the European Union's Horizon Europe research and innovation programme through the [NGI TrustChain project](https://trustchain.ngi.eu/).
 
 Views and opinions expressed are, however, those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.
