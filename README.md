@@ -547,9 +547,11 @@ Log levels are set to `INFO` by default, with detailed logging for:
 ## Acknowledgements
 
 <p align="center">
+  
+  <img src="https://osl.etsi.org/ecosystem/logos/p2code.jpg" alt="P2CODE Project" width="120" style="vertical-align: middle;"/>
+  &nbsp;&nbsp;&nbsp;
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/255px-Flag_of_Europe.svg.png" alt="European Union Flag" width="80" style="vertical-align: middle;"/>
   &nbsp;&nbsp;&nbsp;
-  <img src="https://osl.etsi.org/ecosystem/logos/p2code.jpg" alt="P2CODE Project" width="120" style="vertical-align: middle;"/>
 <img src="https://trustchain.ngi.eu/wp-content/uploads/2023/01/NGI-trustchain.png.webp" alt="NGI TrustChain project" width="120" style="vertical-align: middle;"/>
 </p>
 
