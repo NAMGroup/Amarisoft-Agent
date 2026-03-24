@@ -559,3 +559,8 @@ Log levels are set to `INFO` by default, with detailed logging for:
 * This project has received funding from the European Union's Horizon Europe research and innovation programme through the [NGI TrustChain project](https://trustchain.ngi.eu/).
 
 Views and opinions expressed are, however, those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.
+
+---
+## License
+
+Apache License 2.0
